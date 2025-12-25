@@ -443,17 +443,17 @@ if model is not None and st.button("开始预测", type="primary"):
             st.markdown("以下图表显示了各个特征变量对预测结果的贡献程度：")
             
             # SHAP力图在上面
-            st.markdown("#### SHAP Force Plot")
+            st.markdown("#### SHAP 力图")
             st.image(buf_force, use_column_width=True)
-            st.caption("The force plot shows how each feature pushes the model output from the base value to the final prediction")
+            st.caption("SHAP力图展示了每个特征如何将模型输出从基准值累加至最终预测值")
             
             # 添加一个小分隔
             st.markdown("<br>", unsafe_allow_html=True)
             
             # SHAP瀑布图在下面
-            st.markdown("#### SHAP Waterfall Plot")
+            st.markdown("#### SHAP 瀑布图")
             st.image(buf_waterfall, use_column_width=True)
-            st.caption("The waterfall plot shows the cumulative contribution of each feature to the prediction")
+            st.caption("SHAP瀑布图展示了每个特征对预测的累计贡献")
             
             # 添加特征影响分析
             st.subheader("特征影响分析")
