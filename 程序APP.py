@@ -188,21 +188,30 @@ for i, feature in enumerate(features_list):
                 # 设置步长
                 step = properties.get("step", 1)
                 
-                value = st.number_input(
-                    label=f"{properties['label']}",
-                    min_value=float(properties["min"]),
-                    max_value=float(properties["max"]),
-                    value=float(properties["default"]),
-                    step=step,  # 添加步长设置
-                    format="%.1f" if step < 1 else None,  # 小数特征显示1位小数
-                    help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
-                )
-                
-                # 根据步长类型调整数值格式
+                # 根据步长确定value的类型
                 if step == 1:
-                    value = int(value)  # 整数特征取整
+                    # 整数特征
+                    value = st.number_input(
+                        label=f"{properties['label']}",
+                        min_value=float(properties["min"]),
+                        max_value=float(properties["max"]),
+                        value=float(properties["default"]),
+                        step=float(step),  # 转换为浮点数
+                        help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
+                    )
+                    value = int(value)  # 转换为整数
                 else:
-                    value = round(value, 1)  # 小数特征保留1位小数
+                    # 小数特征
+                    value = st.number_input(
+                        label=f"{properties['label']}",
+                        min_value=float(properties["min"]),
+                        max_value=float(properties["max"]),
+                        value=float(properties["default"]),
+                        step=float(step),  # 转换为浮点数
+                        format="%.1f",  # 显示一位小数
+                        help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
+                    )
+                    value = round(value, 1)  # 保留1位小数
                     
             elif properties["type"] == "categorical":
                 option_labels = properties.get("option_labels", {k: str(k) for k in properties["options"]})
@@ -220,21 +229,30 @@ for i, feature in enumerate(features_list):
                 # 设置步长
                 step = properties.get("step", 1)
                 
-                value = st.number_input(
-                    label=f"{properties['label']}",
-                    min_value=float(properties["min"]),
-                    max_value=float(properties["max"]),
-                    value=float(properties["default"]),
-                    step=step,  # 添加步长设置
-                    format="%.1f" if step < 1 else None,  # 小数特征显示1位小数
-                    help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
-                )
-                
-                # 根据步长类型调整数值格式
+                # 根据步长确定value的类型
                 if step == 1:
-                    value = int(value)  # 整数特征取整
+                    # 整数特征
+                    value = st.number_input(
+                        label=f"{properties['label']}",
+                        min_value=float(properties["min"]),
+                        max_value=float(properties["max"]),
+                        value=float(properties["default"]),
+                        step=float(step),  # 转换为浮点数
+                        help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
+                    )
+                    value = int(value)  # 转换为整数
                 else:
-                    value = round(value, 1)  # 小数特征保留1位小数
+                    # 小数特征
+                    value = st.number_input(
+                        label=f"{properties['label']}",
+                        min_value=float(properties["min"]),
+                        max_value=float(properties["max"]),
+                        value=float(properties["default"]),
+                        step=float(step),  # 转换为浮点数
+                        format="%.1f",  # 显示一位小数
+                        help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
+                    )
+                    value = round(value, 1)  # 保留1位小数
                     
             elif properties["type"] == "categorical":
                 option_labels = properties.get("option_labels", {k: str(k) for k in properties["options"]})
