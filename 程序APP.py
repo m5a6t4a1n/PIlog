@@ -379,7 +379,8 @@ if model is not None and st.button("开始预测", type="primary"):
                 show=False
             )
             
-            plt.title(f"SHAP - PI: {probability:.2f}%", fontsize=12, pad=20)
+            # 移除中文标题
+            # plt.title(f"SHAP力图 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
             plt.tight_layout()
             
             buf_force = BytesIO()
@@ -402,7 +403,8 @@ if model is not None and st.button("开始预测", type="primary"):
             try:
                 # 绘制瀑布图
                 shap.plots.waterfall(exp, max_display=max_display, show=False)
-                plt.title(f"SHAP - PI: {probability:.2f}%", fontsize=12, pad=20)
+                # 移除中文标题
+                # plt.title(f"SHAP瀑布图 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
             except Exception as e:
                 st.warning(f"瀑布图生成异常，使用条形图替代: {str(e)}")
                 plt.clf()  # 清除当前图形
@@ -417,13 +419,14 @@ if model is not None and st.button("开始预测", type="primary"):
                 
                 plt.barh(range(len(sorted_idx)), shap_values_array[0][sorted_idx], color=colors)
                 plt.yticks(range(len(sorted_idx)), [shap_df.columns[i] for i in sorted_idx])
-                plt.xlabel("SHAP值 (对PI概率的影响)")
-                plt.title(f"特征对PI风险的影响 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
+                plt.xlabel("SHAP Value (Impact on PI Probability)")
+                # 移除中文标题
+                # plt.title(f"特征对PI风险的影响 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
                 
                 # 添加图例
                 from matplotlib.patches import Patch
-                legend_elements = [Patch(facecolor='red', label='增加PI风险'),
-                                  Patch(facecolor='blue', label='降低PI风险')]
+                legend_elements = [Patch(facecolor='red', label='Increase PI Risk'),
+                                  Patch(facecolor='blue', label='Decrease PI Risk')]
                 plt.legend(handles=legend_elements, loc='lower right')
             
             plt.tight_layout()
@@ -440,17 +443,17 @@ if model is not None and st.button("开始预测", type="primary"):
             st.markdown("以下图表显示了各个特征变量对预测结果的贡献程度：")
             
             # SHAP力图在上面
-            st.markdown("#### SHAP力图")
+            st.markdown("#### SHAP Force Plot")
             st.image(buf_force, use_column_width=True)
-            st.caption("力图显示了每个特征如何将模型输出从基准值推动到最终预测值")
+            st.caption("The force plot shows how each feature pushes the model output from the base value to the final prediction")
             
             # 添加一个小分隔
             st.markdown("<br>", unsafe_allow_html=True)
             
             # SHAP瀑布图在下面
-            st.markdown("#### SHAP瀑布图")
+            st.markdown("#### SHAP Waterfall Plot")
             st.image(buf_waterfall, use_column_width=True)
-            st.caption("瀑布图显示了每个特征对预测的累积贡献")
+            st.caption("The waterfall plot shows the cumulative contribution of each feature to the prediction")
             
             # 添加特征影响分析
             st.subheader("特征影响分析")
@@ -535,7 +538,6 @@ with st.sidebar:
     - **PCAT总分**: 基层医疗质量评估量表总分 1 ~ 4（无量纲）
     - **Mlu**: 是否为多发性骨折
     """)
-
 
 # 页脚
 st.markdown("---")
