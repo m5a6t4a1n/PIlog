@@ -188,26 +188,27 @@ for i, feature in enumerate(features_list):
                 # 设置步长
                 step = properties.get("step", 1)
                 
-                # 根据步长确定value的类型
+                # 根据步长确定value的类型和显示格式
                 if step == 1:
-                    # 整数特征
+                    # 整数特征 - 显示整数格式
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
-                        step=float(step),  # 转换为浮点数
+                        step=float(step),
+                        format="%d",  # 显示整数格式
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
                     value = int(value)  # 转换为整数
                 else:
-                    # 小数特征
+                    # 小数特征 - 显示一位小数
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
-                        step=float(step),  # 转换为浮点数
+                        step=float(step),
                         format="%.1f",  # 显示一位小数
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
@@ -229,26 +230,27 @@ for i, feature in enumerate(features_list):
                 # 设置步长
                 step = properties.get("step", 1)
                 
-                # 根据步长确定value的类型
+                # 根据步长确定value的类型和显示格式
                 if step == 1:
-                    # 整数特征
+                    # 整数特征 - 显示整数格式
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
-                        step=float(step),  # 转换为浮点数
+                        step=float(step),
+                        format="%d",  # 显示整数格式
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
                     value = int(value)  # 转换为整数
                 else:
-                    # 小数特征
+                    # 小数特征 - 显示一位小数
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
-                        step=float(step),  # 转换为浮点数
+                        step=float(step),
                         format="%.1f",  # 显示一位小数
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
@@ -273,7 +275,13 @@ with st.expander("📋 当前输入值预览"):
         if prop["type"] == "categorical" and "option_labels" in prop:
             display_value = prop["option_labels"].get(int(value), value)
         else:
-            display_value = value
+            # 根据特征类型调整显示格式
+            if feature in ["FCTI", "Age", "Com", "PCAT"]:
+                display_value = int(value)  # 整数特征显示整数
+            elif feature == "Ser":
+                display_value = round(value, 1)  # Ser显示一位小数
+            else:
+                display_value = value
         preview_data.append({"特征": feature_abbreviations[feature], "值": display_value})
     
     preview_df = pd.DataFrame(preview_data)
@@ -469,8 +477,14 @@ if model is not None and st.button("开始预测", type="primary"):
                 if prop["type"] == "categorical" and "option_labels" in prop:
                     display_value = prop["option_labels"].get(int(value), value)
                 else:
-                    display_value = value
-                feature_data.append({"特征": feature, "值": display_value})
+                    # 根据特征类型调整显示格式
+                    if feature_abbreviations[features_list[i]] in ["FCTI", "Age", "Com", "PCAT"]:
+                        display_value = int(value)  # 整数特征显示整数
+                    elif feature_abbreviations[features_list[i]] == "Ser":
+                        display_value = round(value, 1)  # Ser显示一位小数
+                    else:
+                        display_value = value
+                feature_data.append({"特征": feature_abbreviations[features_list[i]], "值": display_value})
             
             feature_df = pd.DataFrame(feature_data)
             st.dataframe(feature_df, use_container_width=True)
@@ -514,24 +528,24 @@ with st.sidebar:
     - **高风险**: PI发生概率 ≥ 50%
     
     ### 输入说明
-    - **整数特征**: FCTI总分、年龄、合并症数量、PCAT总分 - 每次增减1
-    - **小数特征**: 血清白蛋白 - 每次增减0.1
+    - **整数特征**: FCTI总分、年龄、合并症数量、PCAT总分 - 每次增减1，显示为整数
+    - **小数特征**: 血清白蛋白 - 每次增减0.1，显示一位小数
     - **分类特征**: 通过下拉菜单选择
     """)
 
 # 添加特征缩写说明
 with st.sidebar.expander("特征缩写说明"):
     st.markdown("""
-    | 缩写 | 全称 | 描述 | 输入类型 |
-    |------|------|------|----------|
-    | FCTI | FCTI总分 | 功能沟通测试工具总分 | 整数 |
-    | Age | 年龄 | 患者年龄（岁） | 整数 |
-    | Ser | 血清白蛋白 | 血清白蛋白水平 (g/L) | 小数 |
-    | Fra | 骨折类型 | 骨折的具体类型 | 分类 |
-    | Air | 气垫床/充气床垫 | 是否使用气垫床 | 分类 |
-    | Com | 合并症数量 | 患者合并症的数量 | 整数 |
-    | PCAT | PCAT总分 | 患者照顾者评估工具总分 | 整数 |
-    | Mlu | 多发性骨折 | 是否有多发性骨折 | 分类 |
+    | 缩写 | 全称 | 描述 | 输入类型 | 显示格式 |
+    |------|------|------|----------|----------|
+    | FCTI | FCTI总分 | 功能沟通测试工具总分 | 整数 | 整数 |
+    | Age | 年龄 | 患者年龄（岁） | 整数 | 整数 |
+    | Ser | 血清白蛋白 | 血清白蛋白水平 (g/L) | 小数 | 一位小数 |
+    | Fra | 骨折类型 | 骨折的具体类型 | 分类 | 中文描述 |
+    | Air | 气垫床/充气床垫 | 是否使用气垫床 | 分类 | 中文描述 |
+    | Com | 合并症数量 | 患者合并症的数量 | 整数 | 整数 |
+    | PCAT | PCAT总分 | 患者照顾者评估工具总分 | 整数 | 整数 |
+    | Mlu | 多发性骨折 | 是否有多发性骨折 | 分类 | 中文描述 |
     """)
 
 # 页脚
