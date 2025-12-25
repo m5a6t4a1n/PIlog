@@ -190,14 +190,14 @@ for i, feature in enumerate(features_list):
                 
                 # 根据步长确定value的类型和显示格式
                 if step == 1:
-                    # 整数特征 - 显示整数格式
+                    # 整数特征 - 使用%g格式自动选择整数显示
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
                         step=float(step),
-                        format="%d",  # 显示整数格式
+                        format="%g",  # 使用%g格式，自动显示整数
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
                     value = int(value)  # 转换为整数
@@ -232,14 +232,14 @@ for i, feature in enumerate(features_list):
                 
                 # 根据步长确定value的类型和显示格式
                 if step == 1:
-                    # 整数特征 - 显示整数格式
+                    # 整数特征 - 使用%g格式自动选择整数显示
                     value = st.number_input(
                         label=f"{properties['label']}",
                         min_value=float(properties["min"]),
                         max_value=float(properties["max"]),
                         value=float(properties["default"]),
                         step=float(step),
-                        format="%d",  # 显示整数格式
+                        format="%g",  # 使用%g格式，自动显示整数
                         help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                     )
                     value = int(value)  # 转换为整数
