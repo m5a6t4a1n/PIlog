@@ -49,15 +49,15 @@ feature_ranges = {
         "type": "numerical", 
         "min": 0, 
         "max": 40, 
-        "default": 21, 
+        "default": 32, 
         "step": 1,  # 整数步长
         "label": "FCTI总分"
     },
     "Age": {
         "type": "numerical", 
         "min": 70, 
-        "max": 99, 
-        "default": 78, 
+        "max": 98, 
+        "default": 87, 
         "step": 1,  # 整数步长
         "label": "年龄（岁）"
     },
@@ -65,7 +65,7 @@ feature_ranges = {
         "type": "numerical", 
         "min": 20.0, 
         "max": 60.0, 
-        "default": 21.0, 
+        "default": 26.3, 
         "step": 0.1,  # 小数步长
         "label": "血清白蛋白 (g/L)"
     },
@@ -92,7 +92,7 @@ feature_ranges = {
         "type": "numerical", 
         "min": 0, 
         "max": 8, 
-        "default": 2, 
+        "default": 5, 
         "step": 1,  # 整数步长
         "label": "合并症数量"
     },
@@ -100,7 +100,7 @@ feature_ranges = {
         "type": "numerical", 
         "min": 1, 
         "max": 4, 
-        "default": 3, 
+        "default": 2, 
         "step": 1,  # 整数步长
         "label": "PCAT总分"
     },
