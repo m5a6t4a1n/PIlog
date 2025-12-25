@@ -43,23 +43,77 @@ feature_abbreviations = {
     "Mlu": "Mlu"
 }
 
-# 特征范围定义
+# 特征范围定义 - 优化步长设置
 feature_ranges = {
-   "FCTI": {"type": "numerical", "min": 0, "max": 40, "default": 21, "label": "FCTI总分"},
-    "Age": {"type": "numerical", "min": 70, "max": 99, "default": 78, "label": "年龄（岁）"},
-    "Ser": {"type": "numerical", "min": 20, "max": 60, "default": 21, "label": "血清白蛋白"},
-    "Fra": {"type": "categorical", "options": [0,1,2,3,4,5,6,7,8,9,10,11,12,13], "default": 9, "label": "骨折类型", 
-            "option_labels": {0: "颈椎骨折", 1: "胸椎骨折",2: "腰椎骨折", 
-                              3: "股骨颈骨折", 4: "股骨粗隆间骨折", 5: "股骨干骨折", 6: "胫腓骨上段骨折",
-                              7: "尾骨粉碎性骨折", 8: "骶髂关节脱位", 9: "髋骨骨折", 
-                              10: "髌骨粉碎性骨折", 11: "髋关节内骨折", 12: "脆性骨折", 13: "其他"}},
-    "Air": {"type": "categorical", "options": [0, 1], "default": 0, "label": "气垫床/充气床垫", "option_labels": {0: "未使用", 1: "使用"}},
-    "Com": {"type": "numerical", "min": 0, "max": 8, "default": 2, "label": "合并症数量"},
-    "PCAT": {"type": "numerical", "min": 1, "max": 4, "default": 3, "label": "PCAT总分"},
-    "Mlu": {"type": "categorical", "options": [0, 1], "default": 0, "label": "多发性骨折", "option_labels": {0: "否", 1: "是"}},
+    "FCTI": {
+        "type": "numerical", 
+        "min": 0, 
+        "max": 40, 
+        "default": 21, 
+        "step": 1,  # 整数步长
+        "label": "FCTI总分"
+    },
+    "Age": {
+        "type": "numerical", 
+        "min": 70, 
+        "max": 99, 
+        "default": 78, 
+        "step": 1,  # 整数步长
+        "label": "年龄（岁）"
+    },
+    "Ser": {
+        "type": "numerical", 
+        "min": 20.0, 
+        "max": 60.0, 
+        "default": 21.0, 
+        "step": 0.1,  # 小数步长
+        "label": "血清白蛋白 (g/L)"
+    },
+    "Fra": {
+        "type": "categorical", 
+        "options": [0,1,2,3,4,5,6,7,8,9,10,11,12,13], 
+        "default": 9, 
+        "label": "骨折类型", 
+        "option_labels": {
+            0: "颈椎骨折", 1: "胸椎骨折", 2: "腰椎骨折", 
+            3: "股骨颈骨折", 4: "股骨粗隆间骨折", 5: "股骨干骨折", 6: "胫腓骨上段骨折",
+            7: "尾骨粉碎性骨折", 8: "骶髂关节脱位", 9: "髋骨骨折", 
+            10: "髌骨粉碎性骨折", 11: "髋关节内骨折", 12: "脆性骨折", 13: "其他"
+        }
+    },
+    "Air": {
+        "type": "categorical", 
+        "options": [0, 1], 
+        "default": 0, 
+        "label": "气垫床/充气床垫", 
+        "option_labels": {0: "未使用", 1: "使用"}
+    },
+    "Com": {
+        "type": "numerical", 
+        "min": 0, 
+        "max": 8, 
+        "default": 2, 
+        "step": 1,  # 整数步长
+        "label": "合并症数量"
+    },
+    "PCAT": {
+        "type": "numerical", 
+        "min": 1, 
+        "max": 4, 
+        "default": 3, 
+        "step": 1,  # 整数步长
+        "label": "PCAT总分"
+    },
+    "Mlu": {
+        "type": "categorical", 
+        "options": [0, 1], 
+        "default": 0, 
+        "label": "多发性骨折", 
+        "option_labels": {0: "否", 1: "是"}
+    },
 }
 
-# 创建一个更稳定的背景数据集（使用多个样本，避免单一样本的问题）
+# 创建一个更稳定的背景数据集
 @st.cache_resource
 def create_background_data():
     """创建稳定的背景数据集"""
@@ -83,6 +137,11 @@ def create_background_data():
                     value = prop["min"] + (prop["max"] - prop["min"]) * 0.25
                 else:
                     value = prop["min"] + (prop["max"] - prop["min"]) * 0.75
+                # 根据特征类型调整数值格式
+                if "step" in prop and prop["step"] == 1:
+                    value = int(round(value))  # 整数特征取整
+                else:
+                    value = round(value, 1)  # 小数特征保留1位小数
             else:
                 # 对于分类变量，使用默认值
                 value = prop["default"]
@@ -126,13 +185,25 @@ for i, feature in enumerate(features_list):
     if i < half_point:
         with col1:
             if properties["type"] == "numerical":
+                # 设置步长
+                step = properties.get("step", 1)
+                
                 value = st.number_input(
                     label=f"{properties['label']}",
                     min_value=float(properties["min"]),
                     max_value=float(properties["max"]),
                     value=float(properties["default"]),
-                    help=f"范围: {properties['min']} - {properties['max']}"
+                    step=step,  # 添加步长设置
+                    format="%.1f" if step < 1 else None,  # 小数特征显示1位小数
+                    help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                 )
+                
+                # 根据步长类型调整数值格式
+                if step == 1:
+                    value = int(value)  # 整数特征取整
+                else:
+                    value = round(value, 1)  # 小数特征保留1位小数
+                    
             elif properties["type"] == "categorical":
                 option_labels = properties.get("option_labels", {k: str(k) for k in properties["options"]})
                 selected_label = st.selectbox(
@@ -146,13 +217,25 @@ for i, feature in enumerate(features_list):
     else:
         with col2:
             if properties["type"] == "numerical":
+                # 设置步长
+                step = properties.get("step", 1)
+                
                 value = st.number_input(
                     label=f"{properties['label']}",
                     min_value=float(properties["min"]),
                     max_value=float(properties["max"]),
                     value=float(properties["default"]),
-                    help=f"范围: {properties['min']} - {properties['max']}"
+                    step=step,  # 添加步长设置
+                    format="%.1f" if step < 1 else None,  # 小数特征显示1位小数
+                    help=f"范围: {properties['min']} - {properties['max']}，每次增减: {step}"
                 )
+                
+                # 根据步长类型调整数值格式
+                if step == 1:
+                    value = int(value)  # 整数特征取整
+                else:
+                    value = round(value, 1)  # 小数特征保留1位小数
+                    
             elif properties["type"] == "categorical":
                 option_labels = properties.get("option_labels", {k: str(k) for k in properties["options"]})
                 selected_label = st.selectbox(
@@ -163,6 +246,20 @@ for i, feature in enumerate(features_list):
                 )
                 value = selected_label
             feature_values.append(value)
+
+# 显示当前输入值预览
+with st.expander("📋 当前输入值预览"):
+    preview_data = []
+    for i, (feature, value) in enumerate(zip(features_list, feature_values)):
+        prop = feature_ranges[feature]
+        if prop["type"] == "categorical" and "option_labels" in prop:
+            display_value = prop["option_labels"].get(int(value), value)
+        else:
+            display_value = value
+        preview_data.append({"特征": feature_abbreviations[feature], "值": display_value})
+    
+    preview_df = pd.DataFrame(preview_data)
+    st.dataframe(preview_df, use_container_width=True)
 
 st.markdown("---")
 
@@ -378,8 +475,6 @@ if model is not None and st.button("开始预测", type="primary"):
             1. 刷新页面并重试
             2. 确保所有输入值在合理范围内
             3. 如果问题持续，请联系开发人员
-            
-            **错误详情：** 这可能与SHAP库在计算背景数据时的初始化问题有关。
             """)
 
 # 侧边栏信息
@@ -400,25 +495,25 @@ with st.sidebar:
     - **中风险**: 20% ≤ PI发生概率 < 50%
     - **高风险**: PI发生概率 ≥ 50%
     
-    ### 使用提示
-    1. 如果第一次运行出现错误，请刷新页面或修改任意输入值后重试
-    2. 确保所有输入值在合理范围内
-    3. 结果仅供参考，实际诊疗需结合临床判断
+    ### 输入说明
+    - **整数特征**: FCTI总分、年龄、合并症数量、PCAT总分 - 每次增减1
+    - **小数特征**: 血清白蛋白 - 每次增减0.1
+    - **分类特征**: 通过下拉菜单选择
     """)
 
 # 添加特征缩写说明
 with st.sidebar.expander("特征缩写说明"):
     st.markdown("""
-    | 缩写 | 全称 | 描述 |
-    |------|------|------|
-    | FCTI | FCTI总分 | 功能沟通测试工具总分 |
-    | Age | 年龄 | 患者年龄（岁） |
-    | Ser | 血清白蛋白 | 血清白蛋白水平 |
-    | Fra | 骨折类型 | 骨折的具体类型 |
-    | Air | 气垫床/充气床垫 | 是否使用气垫床 |
-    | Com | 合并症数量 | 患者合并症的数量 |
-    | PCAT | PCAT总分 | 患者照顾者评估工具总分 |
-    | Mlu | 多发性骨折 | 是否有多发性骨折 |
+    | 缩写 | 全称 | 描述 | 输入类型 |
+    |------|------|------|----------|
+    | FCTI | FCTI总分 | 功能沟通测试工具总分 | 整数 |
+    | Age | 年龄 | 患者年龄（岁） | 整数 |
+    | Ser | 血清白蛋白 | 血清白蛋白水平 (g/L) | 小数 |
+    | Fra | 骨折类型 | 骨折的具体类型 | 分类 |
+    | Air | 气垫床/充气床垫 | 是否使用气垫床 | 分类 |
+    | Com | 合并症数量 | 患者合并症的数量 | 整数 |
+    | PCAT | PCAT总分 | 患者照顾者评估工具总分 | 整数 |
+    | Mlu | 多发性骨折 | 是否有多发性骨折 | 分类 |
     """)
 
 # 页脚
