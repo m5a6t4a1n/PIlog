@@ -217,10 +217,16 @@ if model is not None and st.button("开始预测", type="primary"):
             else:
                 shap_values_array = shap_values
             
+            # 获取基准值
+            if isinstance(explainer.expected_value, list):
+                base_value = explainer.expected_value[1]
+            else:
+                base_value = explainer.expected_value
+            
             # 生成 SHAP 力图
-            plt.figure(figsize=(12, 4), dpi=300)
+            plt.figure(figsize=(12, 4), dpi=150)
             shap.force_plot(
-                explainer.expected_value[1] if isinstance(explainer.expected_value, list) else explainer.expected_value,
+                base_value,
                 shap_values_array[0],
                 shap_df.iloc[0].values,
                 feature_names=shap_df.columns.tolist(),
@@ -234,28 +240,51 @@ if model is not None and st.button("开始预测", type="primary"):
             
             # 保存力图为图像
             buf_force = BytesIO()
-            plt.savefig(buf_force, format="png", bbox_inches="tight", dpi=300)
+            plt.savefig(buf_force, format="png", bbox_inches="tight", dpi=150)
             plt.close()
             
-            # 生成 SHAP 瀑布图
-            plt.figure(figsize=(12, 6), dpi=300)
+            # 生成 SHAP 瀑布图 - 修复版本
+            plt.figure(figsize=(10, 6), dpi=150)
+            
+            # 限制特征显示数量，避免图形过大
+            max_display = min(10, len(shap_df.columns))
             
             # 创建Explanation对象用于瀑布图
             exp = shap.Explanation(
                 values=shap_values_array[0],  # 第一个样本的SHAP值
-                base_values=explainer.expected_value[1] if isinstance(explainer.expected_value, list) else explainer.expected_value,
+                base_values=base_value,
                 data=shap_df.iloc[0].values,
                 feature_names=shap_df.columns.tolist()
             )
             
-            # 绘制瀑布图
-            shap.plots.waterfall(exp, max_display=8, show=False)
-            plt.title(f"SHAP瀑布图 - PI预测概率: {probability:.2f}%", fontsize=12, pad=20)
+            # 绘制瀑布图 - 使用低级别API以避免尺寸问题
+            try:
+                # 尝试使用plot函数
+                shap.plots.waterfall(exp, max_display=max_display, show=False)
+            except:
+                # 如果失败，使用自定义方法
+                try:
+                    # 使用bar plot作为替代
+                    shap.plots.bar(exp, max_display=max_display, show=False)
+                    plt.title(f"SHAP特征重要性 - PI预测概率: {probability:.2f}%", fontsize=12, pad=20)
+                except Exception as e:
+                    st.warning(f"无法生成瀑布图: {str(e)}")
+                    # 创建一个简单的条形图作为替代
+                    plt.clf()
+                    # 获取特征重要性
+                    feature_importance = np.abs(shap_values_array[0])
+                    sorted_idx = np.argsort(feature_importance)[-max_display:]
+                    
+                    plt.barh(range(len(sorted_idx)), feature_importance[sorted_idx])
+                    plt.yticks(range(len(sorted_idx)), [shap_df.columns[i] for i in sorted_idx])
+                    plt.xlabel("SHAP值绝对值")
+                    plt.title(f"特征重要性 - PI预测概率: {probability:.2f}%", fontsize=12, pad=20)
+            
             plt.tight_layout()
             
             # 保存瀑布图为图像
             buf_waterfall = BytesIO()
-            plt.savefig(buf_waterfall, format="png", bbox_inches="tight", dpi=300)
+            plt.savefig(buf_waterfall, format="png", bbox_inches="tight", dpi=150)
             plt.close()
             
             # 重置缓冲区位置
@@ -298,9 +327,33 @@ if model is not None and st.button("开始预测", type="primary"):
                 st.markdown(f"- **{feature}**: <span style='color:{color}'>{direction}PI风险</span> (影响值: {shap_value:.4f})", 
                            unsafe_allow_html=True)
             
+            # 显示特征值
+            st.subheader("当前输入的特征值")
+            feature_data = []
+            for i, (feature, value) in enumerate(zip(shap_df.columns, feature_values)):
+                prop = feature_ranges[features_list[i]]
+                if prop["type"] == "categorical" and "option_labels" in prop:
+                    # 对于分类变量，显示中文标签
+                    display_value = prop["option_labels"].get(int(value), value)
+                else:
+                    display_value = value
+                feature_data.append({"特征": feature, "值": display_value})
+            
+            feature_df = pd.DataFrame(feature_data)
+            st.dataframe(feature_df, use_container_width=True)
+            
         except Exception as e:
             st.error(f"生成模型解释图时出错: {str(e)}")
-            st.info("请确保SHAP库已正确安装，并且模型支持SHAP解释。")
+            st.info("""
+            可能的原因：
+            1. SHAP库版本问题，建议使用最新版本
+            2. 特征值超出正常范围
+            3. 内存不足
+            
+            解决方案：
+            1. 尝试更新SHAP库：`pip install --upgrade shap`
+            2. 检查输入的特征值是否在合理范围内
+            """)
 
 # 添加侧边栏信息
 with st.sidebar:
