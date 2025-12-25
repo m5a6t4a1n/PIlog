@@ -379,7 +379,7 @@ if model is not None and st.button("开始预测", type="primary"):
                 show=False
             )
             
-            plt.title(f"SHAP力图 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
+            plt.title(f"SHAP - PI: {probability:.2f}%", fontsize=12, pad=20)
             plt.tight_layout()
             
             buf_force = BytesIO()
@@ -402,7 +402,7 @@ if model is not None and st.button("开始预测", type="primary"):
             try:
                 # 绘制瀑布图
                 shap.plots.waterfall(exp, max_display=max_display, show=False)
-                plt.title(f"SHAP瀑布图 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
+                plt.title(f"SHAP - PI: {probability:.2f}%", fontsize=12, pad=20)
             except Exception as e:
                 st.warning(f"瀑布图生成异常，使用条形图替代: {str(e)}")
                 plt.clf()  # 清除当前图形
