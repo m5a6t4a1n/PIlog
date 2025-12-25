@@ -59,6 +59,41 @@ feature_ranges = {
     "Mlu": {"type": "categorical", "options": [0, 1], "default": 0, "label": "多发性骨折", "option_labels": {0: "否", 1: "是"}},
 }
 
+# 创建一个更稳定的背景数据集（使用多个样本，避免单一样本的问题）
+@st.cache_resource
+def create_background_data():
+    """创建稳定的背景数据集"""
+    background_samples = []
+    
+    # 创建5个不同的背景样本
+    for i in range(5):
+        sample = []
+        for feature in feature_ranges.keys():
+            prop = feature_ranges[feature]
+            if prop["type"] == "numerical":
+                # 使用中间值
+                value = (prop["min"] + prop["max"]) / 2
+                if i == 0:
+                    value = prop["min"]
+                elif i == 1:
+                    value = prop["max"]
+                elif i == 2:
+                    value = prop["default"]
+                elif i == 3:
+                    value = prop["min"] + (prop["max"] - prop["min"]) * 0.25
+                else:
+                    value = prop["min"] + (prop["max"] - prop["min"]) * 0.75
+            else:
+                # 对于分类变量，使用默认值
+                value = prop["default"]
+            sample.append(value)
+        background_samples.append(sample)
+    
+    background_df = pd.DataFrame(background_samples, columns=feature_ranges.keys())
+    background_df.columns = [feature_abbreviations[col] for col in background_df.columns]
+    
+    return background_df
+
 # Streamlit 界面
 st.title('"医院-家庭-社区"三区联合延续护理模式下的老年骨折卧床患者PI风险预测模型')
 
@@ -154,7 +189,7 @@ if model is not None and st.button("开始预测", type="primary"):
     
     # 使用进度条和指标显示PI发生概率
     st.metric(label="PI发生概率", value=f"{probability:.2f}%")
-    st.progress(int(probability))
+    st.progress(min(100, int(probability)))  # 确保不超过100
     
     # 添加风险等级解读 - 基于PI发生概率
     if probability < 20:
@@ -186,18 +221,8 @@ if model is not None and st.button("开始预测", type="primary"):
     # 计算 SHAP 值
     with st.spinner('正在生成模型解释图...'):
         try:
-            # 创建背景数据集
-            background_data = []
-            for feature in features_list:
-                prop = feature_ranges[feature]
-                if prop["type"] == "numerical":
-                    background_data.append([prop["default"]])
-                else:
-                    background_data.append([prop["default"]])
-            
-            background_df = pd.DataFrame([data[0] for data in background_data], 
-                                         index=features_list).T
-            background_df.columns = [feature_abbreviations[col] for col in background_df.columns]
+            # 使用预创建的背景数据集
+            background_df = create_background_data()
             
             # 对于Logistic Regression，使用LinearExplainer
             explainer = shap.LinearExplainer(model, background_df)
@@ -221,7 +246,7 @@ if model is not None and st.button("开始预测", type="primary"):
                 base_value = explainer.expected_value
             
             # 生成 SHAP 力图
-            plt.figure(figsize=(12, 4), dpi=150)
+            plt.figure(figsize=(12, 4), dpi=100)
             shap.force_plot(
                 base_value,
                 shap_values_array[0],
@@ -235,11 +260,11 @@ if model is not None and st.button("开始预测", type="primary"):
             plt.tight_layout()
             
             buf_force = BytesIO()
-            plt.savefig(buf_force, format="png", bbox_inches="tight", dpi=150)
+            plt.savefig(buf_force, format="png", bbox_inches="tight", dpi=100)
             plt.close()
             
-            # 生成 SHAP 瀑布图
-            plt.figure(figsize=(10, 6), dpi=150)
+            # 生成 SHAP 瀑布图 - 使用更稳定的方法
+            plt.figure(figsize=(10, 6), dpi=100)
             max_display = min(8, len(shap_df.columns))
             
             # 创建Explanation对象
@@ -250,17 +275,36 @@ if model is not None and st.button("开始预测", type="primary"):
                 feature_names=shap_df.columns.tolist()
             )
             
-            # 尝试绘制瀑布图
+            # 尝试绘制瀑布图，如果失败则使用条形图
             try:
+                # 绘制瀑布图
                 shap.plots.waterfall(exp, max_display=max_display, show=False)
-            except:
-                # 如果失败，使用条形图作为替代
-                shap.plots.bar(exp, max_display=max_display, show=False)
-                plt.title(f"SHAP特征重要性 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
+            except Exception as e:
+                st.warning(f"瀑布图生成异常，使用条形图替代: {str(e)}")
+                plt.clf()  # 清除当前图形
+                
+                # 绘制条形图
+                # 计算特征重要性
+                feature_importance = np.abs(shap_values_array[0])
+                sorted_idx = np.argsort(feature_importance)[-max_display:]
+                
+                # 创建颜色：红色表示正影响，蓝色表示负影响
+                colors = ['red' if shap_values_array[0][i] > 0 else 'blue' for i in sorted_idx]
+                
+                plt.barh(range(len(sorted_idx)), shap_values_array[0][sorted_idx], color=colors)
+                plt.yticks(range(len(sorted_idx)), [shap_df.columns[i] for i in sorted_idx])
+                plt.xlabel("SHAP值 (对PI概率的影响)")
+                plt.title(f"特征对PI风险的影响 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
+                
+                # 添加图例
+                from matplotlib.patches import Patch
+                legend_elements = [Patch(facecolor='red', label='增加PI风险'),
+                                  Patch(facecolor='blue', label='降低PI风险')]
+                plt.legend(handles=legend_elements, loc='lower right')
             
             plt.tight_layout()
             buf_waterfall = BytesIO()
-            plt.savefig(buf_waterfall, format="png", bbox_inches="tight", dpi=150)
+            plt.savefig(buf_waterfall, format="png", bbox_inches="tight", dpi=100)
             plt.close()
             
             # 重置缓冲区位置
@@ -279,9 +323,9 @@ if model is not None and st.button("开始预测", type="primary"):
                 st.caption("力图显示了每个特征如何将模型输出从基准值推动到最终预测值")
             
             with col_waterfall:
-                st.markdown("#### SHAP瀑布图")
+                st.markdown("#### SHAP影响图")
                 st.image(buf_waterfall, use_column_width=True)
-                st.caption("瀑布图显示了每个特征对预测的累积贡献")
+                st.caption("此图显示了各个特征对PI风险的贡献大小和方向")
             
             # 添加特征影响分析
             st.subheader("特征影响分析")
@@ -329,6 +373,14 @@ if model is not None and st.button("开始预测", type="primary"):
                 
         except Exception as e:
             st.error(f"生成模型解释图时出错: {str(e)}")
+            st.info("""
+            **解决方案：**
+            1. 刷新页面并重试
+            2. 确保所有输入值在合理范围内
+            3. 如果问题持续，请联系开发人员
+            
+            **错误详情：** 这可能与SHAP库在计算背景数据时的初始化问题有关。
+            """)
 
 # 侧边栏信息
 with st.sidebar:
@@ -347,6 +399,26 @@ with st.sidebar:
     - **低风险**: PI发生概率 < 20%
     - **中风险**: 20% ≤ PI发生概率 < 50%
     - **高风险**: PI发生概率 ≥ 50%
+    
+    ### 使用提示
+    1. 如果第一次运行出现错误，请刷新页面或修改任意输入值后重试
+    2. 确保所有输入值在合理范围内
+    3. 结果仅供参考，实际诊疗需结合临床判断
+    """)
+
+# 添加特征缩写说明
+with st.sidebar.expander("特征缩写说明"):
+    st.markdown("""
+    | 缩写 | 全称 | 描述 |
+    |------|------|------|
+    | FCTI | FCTI总分 | 功能沟通测试工具总分 |
+    | Age | 年龄 | 患者年龄（岁） |
+    | Ser | 血清白蛋白 | 血清白蛋白水平 |
+    | Fra | 骨折类型 | 骨折的具体类型 |
+    | Air | 气垫床/充气床垫 | 是否使用气垫床 |
+    | Com | 合并症数量 | 患者合并症的数量 |
+    | PCAT | PCAT总分 | 患者照顾者评估工具总分 |
+    | Mlu | 多发性骨折 | 是否有多发性骨折 |
     """)
 
 # 页脚
@@ -359,3 +431,20 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
+
+# 添加SHAP图例说明
+with st.expander("如何解读SHAP图"):
+    st.markdown("""
+    ### SHAP力图解读
+    - **红色箭头**：增加PI风险的因素
+    - **蓝色箭头**：降低PI风险的因素  
+    - **箭头长度**：表示该因素影响程度的大小
+    - **基准值**：模型在训练数据上的平均预测值
+    - **输出值**：当前患者的预测概率
+    
+    ### SHAP影响图解读
+    - **红色条形**：增加PI风险的特征
+    - **蓝色条形**：降低PI风险的特征
+    - **条形长度**：表示该特征对预测的影响大小
+    - **特征排列**：按影响大小从上到下排列
+    """)
