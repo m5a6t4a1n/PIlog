@@ -387,7 +387,7 @@ if model is not None and st.button("开始预测", type="primary"):
             plt.close()
             
             # 生成 SHAP 瀑布图 - 使用更稳定的方法
-            plt.figure(figsize=(10, 6), dpi=100)
+            plt.figure(figsize=(12, 6), dpi=100)  # 增加宽度，使瀑布图更清晰
             max_display = min(8, len(shap_df.columns))
             
             # 创建Explanation对象
@@ -402,6 +402,7 @@ if model is not None and st.button("开始预测", type="primary"):
             try:
                 # 绘制瀑布图
                 shap.plots.waterfall(exp, max_display=max_display, show=False)
+                plt.title(f"SHAP瀑布图 - PI发生概率: {probability:.2f}%", fontsize=12, pad=20)
             except Exception as e:
                 st.warning(f"瀑布图生成异常，使用条形图替代: {str(e)}")
                 plt.clf()  # 清除当前图形
@@ -434,21 +435,22 @@ if model is not None and st.button("开始预测", type="primary"):
             buf_force.seek(0)
             buf_waterfall.seek(0)
             
-            # 显示SHAP解释图
+            # 显示SHAP解释图 - 改为上下排列
             st.subheader("模型解释")
             st.markdown("以下图表显示了各个特征变量对预测结果的贡献程度：")
             
-            col_force, col_waterfall = st.columns(2)
+            # SHAP力图在上面
+            st.markdown("#### SHAP力图")
+            st.image(buf_force, use_column_width=True)
+            st.caption("力图显示了每个特征如何将模型输出从基准值推动到最终预测值")
             
-            with col_force:
-                st.markdown("#### SHAP力图")
-                st.image(buf_force, use_column_width=True)
-                st.caption("力图显示了每个特征如何将模型输出从基准值推动到最终预测值")
+            # 添加一个小分隔
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            with col_waterfall:
-                st.markdown("#### SHAP影响图")
-                st.image(buf_waterfall, use_column_width=True)
-                st.caption("此图显示了各个特征对PI风险的贡献大小和方向")
+            # SHAP瀑布图在下面
+            st.markdown("#### SHAP瀑布图")
+            st.image(buf_waterfall, use_column_width=True)
+            st.caption("瀑布图显示了每个特征对预测的累积贡献")
             
             # 添加特征影响分析
             st.subheader("特征影响分析")
@@ -532,8 +534,6 @@ with st.sidebar:
     - **Com**: 患合并症数量 0 ~ 8（个）  包括神经系统疾病、自身免疫性疾病、糖尿病、水肿、中风、下肢静脉血栓、冠心病和高血压
     - **PCAT总分**: 基层医疗质量评估量表总分 1 ~ 4（无量纲）
     - **Mlu**: 是否为多发性骨折
-    
-    
     """)
 
 
@@ -558,9 +558,10 @@ with st.expander("如何解读SHAP图"):
     - **基准值**：模型在训练数据上的平均预测值
     - **输出值**：当前患者的预测概率
     
-    ### SHAP影响图解读
-    - **红色条形**：增加PI风险的特征
-    - **蓝色条形**：降低PI风险的特征
-    - **条形长度**：表示该特征对预测的影响大小
-    - **特征排列**：按影响大小从上到下排列
+    ### SHAP瀑布图解读
+    - **从上到下**：显示了每个特征如何将预测值从基准值推到最终预测值
+    - **条形长度**：表示每个特征的影响大小
+    - **红色条形**：正向影响（增加风险）
+    - **蓝色条形**：负向影响（降低风险）
+    - **底部值**：最终预测概率
     """)
