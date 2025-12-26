@@ -368,7 +368,7 @@ if model is not None and st.button("开始预测", type="primary"):
             else:
                 base_value = explainer.expected_value
             
-            # 生成 SHAP 力图
+            # 生成 SHAP 力图 - 保持原来的尺寸
             plt.figure(figsize=(12, 4), dpi=100)
             shap.force_plot(
                 base_value,
@@ -387,9 +387,9 @@ if model is not None and st.button("开始预测", type="primary"):
             plt.savefig(buf_force, format="png", bbox_inches="tight", dpi=100)
             plt.close()
             
-            # 生成 SHAP 瀑布图 - 使用更稳定的方法
-            plt.figure(figsize=(12, 6), dpi=100)  # 增加宽度，使瀑布图更清晰
-            max_display = min(8, len(shap_df.columns))
+            # 生成 SHAP 瀑布图 - 修改这里，缩小瀑布图尺寸
+            plt.figure(figsize=(10, 5), dpi=100)  # 减小瀑布图尺寸（原为12,6）
+            max_display = min(6, len(shap_df.columns))  # 减少显示特征数量
             
             # 创建Explanation对象
             exp = shap.Explanation(
