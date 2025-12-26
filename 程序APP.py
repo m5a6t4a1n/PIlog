@@ -389,7 +389,7 @@ if model is not None and st.button("开始预测", type="primary"):
             
             # 生成 SHAP 瀑布图 - 修改这里，缩小瀑布图尺寸
             plt.figure(figsize=(10, 5), dpi=100)  # 减小瀑布图尺寸（原为12,6）
-            max_display = min(6, len(shap_df.columns))  # 减少显示特征数量
+            max_display = min(8, len(shap_df.columns))  # 减少显示特征数量
             
             # 创建Explanation对象
             exp = shap.Explanation(
